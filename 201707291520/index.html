@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>html5 canvas炫酷旋转银河系星空背景特效|DEMO_jQuery之家-自由分享jQuery、html5、css3的插件库</title>
+    <link rel="stylesheet" type="text/css" href="css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="css/htmleaf-demo.css">
+    <script type="text/javascript" src="js/L2Dwidget.min.js"></script>
+    <script type="text/javascript" src="ja/L2Dwidget.0.min.js"></script>
+    <!-- <script type="text/javascript" charset="utf-8" async="" src="https://cdn.jsdelivr.net/npm/live2d-widget@3.0.4/lib/L2Dwidget.min.js"></script> -->
+    <!-- <script src="https://eqcn.ajz.miesnfu.com/wp-content/plugins/wp-3d-pony/live2dw/lib/L2Dwidget.min.js"></script> -->
+    <!-- <script src="https://eqcn.ajz.miesnfu.com/wp-content/plugins/wp-3d-pony/live2dw/lib/L2Dwidget.0.min.js"></script> -->
+    <script>
+        /*
+        jsonPath:
+        "https://unpkg.com/live2d-widget-model-shizuku@1.0.5/assets/shizuku.model.json"
+         "https://unpkg.com/live2d-widget-model-chitose@1.0.5/assets/chitose.model.json"
+         "https://unpkg.com/live2d-widget-model-koharu@1.0.5/assets/koharu.model.json"
+         "https://unpkg.com/live2d-widget-model-haruto@1.0.5/assets/haruto.model.json"
+         "https://unpkg.com/live2d-widget-model-miku@1.0.5/assets/miku.model.json"
+         "https://unpkg.com/live2d-widget-model-z16@1.0.5/assets/z16.model.json"
+        */
+        var model=[
+            "https://unpkg.com/live2d-widget-model-shizuku@1.0.5/assets/shizuku.model.json",
+            "https://unpkg.com/live2d-widget-model-chitose@1.0.5/assets/chitose.model.json",
+             "https://unpkg.com/live2d-widget-model-koharu@1.0.5/assets/koharu.model.json",
+             "https://unpkg.com/live2d-widget-model-haruto@1.0.5/assets/haruto.model.json",
+             "https://unpkg.com/live2d-widget-model-miku@1.0.5/assets/miku.model.json",
+             "https://unpkg.com/live2d-widget-model-z16@1.0.5/assets/z16.model.json"
+        ]
+        L2Dwidget.init({ 
+        　　"model": {
+                "scale": 1,
+                jsonPath:model[5]
+            }, 
+            "display": { 
+                "position": "right", "width": 150, "height": 300,"hOffset": 0, "vOffset": -20 
+            },
+             "mobile": 
+             { 
+                "show": true, "scale": 0.5
+            }, 
+        　   "react": {
+                "opacityDefault": 0.7, "opacityOnHover": 0.2 
+             } 
+        });
+    </script>
+    <style type="text/css">
+    body {
+        background: #060e1b;
+        overflow: hidden;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="htmleaf-container">
+        <canvas id="canvas"></canvas>
+    </div>
+    <script type="text/javascript">
+    "use strict";
+    var canvas = document.getElementById('canvas'),
+        ctx = canvas.getContext('2d'),
+        w = canvas.width = window.innerWidth,
+        h = canvas.height = window.innerHeight,
+
+        hue = 217,
+        stars = [],
+        count = 0,
+        maxStars = 1400;
+
+    var canvas2 = document.createElement('canvas'),
+        ctx2 = canvas2.getContext('2d');
+    canvas2.width = 100;
+    canvas2.height = 100;
+    var half = canvas2.width / 2,
+        gradient2 = ctx2.createRadialGradient(half, half, 0, half, half, half);
+    gradient2.addColorStop(0.025, '#fff');
+    gradient2.addColorStop(0.1, 'hsl(' + hue + ', 61%, 33%)');
+    gradient2.addColorStop(0.25, 'hsl(' + hue + ', 64%, 6%)');
+    gradient2.addColorStop(1, 'transparent');
+
+    ctx2.fillStyle = gradient2;
+    ctx2.beginPath();
+    ctx2.arc(half, half, half, 0, Math.PI * 2);
+    ctx2.fill();
+
+    // End cache
+
+    function random(min, max) {
+        if (arguments.length < 2) {
+            max = min;
+            min = 0;
+        }
+
+        if (min > max) {
+            var hold = max;
+            max = min;
+            min = hold;
+        }
+
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    var Star = function() {
+
+        this.orbitRadius = random(w / 2 - 50);
+        this.radius = random(100, this.orbitRadius) / 10;
+        this.orbitX = w / 2;
+        this.orbitY = h / 2;
+        this.timePassed = random(0, maxStars);
+        this.speed = random(this.orbitRadius) / 100000;
+        this.alpha = random(2, 10) / 10;
+
+        count++;
+        stars[count] = this;
+    }
+
+    Star.prototype.draw = function() {
+        var x = Math.sin(this.timePassed + 1) * this.orbitRadius + this.orbitX,
+            y = Math.cos(this.timePassed) * this.orbitRadius / 2 + this.orbitY,
+            twinkle = random(10);
+
+        if (twinkle === 1 && this.alpha > 0) {
+            this.alpha -= 0.05;
+        } else if (twinkle === 2 && this.alpha < 1) {
+            this.alpha += 0.05;
+        }
+
+        ctx.globalAlpha = this.alpha;
+        ctx.drawImage(canvas2, x - this.radius / 2, y - this.radius / 2, this.radius, this.radius);
+        this.timePassed += this.speed;
+    }
+
+    for (var i = 0; i < maxStars; i++) {
+        new Star();
+    }
+
+    function animation() {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = 'hsla(' + hue + ', 64%, 6%, 1)';
+        ctx.fillRect(0, 0, w, h)
+
+        ctx.globalCompositeOperation = 'lighter';
+        for (var i = 1, l = stars.length; i < l; i++) {
+            stars[i].draw();
+        };
+
+        window.requestAnimationFrame(animation);
+    }
+
+    animation();
+    </script>
+    <!-- <script type="text/javascript">
+        setTimeout(() => {
+                L2Dwidget.init({
+                        "model": {
+                                "scale": 0.5
+                        },
+                        "display": {
+                                "position": "right",
+                                "width": 180,
+                                "height": 260,
+                                "hOffset": 0,
+                                "vOffset": 0
+                        },
+                        "mobile": {
+                                "show": true,
+                                "scale": 0.5
+                        },
+                        "react": {
+                                "opacityDefault": 0.7,
+                                "opacityOnHover": 0.2
+                        }
+                });
+        }, 1000)
+    </script> -->
+</body>
+
+</html>
