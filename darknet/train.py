@@ -271,8 +271,8 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
             val_progress()
             epoch_log.clear()
         # -------update lr---------
-        metric = log_dic['val_acc_top1'] if scheduler.mode == "max" else log_dic['val_loss']
         if scheduler:
+            metric = log_dic['val_acc_top1'] if scheduler.mode == "max" else log_dic['val_loss']
             scheduler.step(metric)
         # -------------save log -----------------
         save_log_to_txt(log_dic, start_time=start_time)
