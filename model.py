@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 
 import torch
 from torch import nn
@@ -94,28 +95,28 @@ class DarkNet_keras(Model):
 
 
 if __name__ == '__main__':
-    net = darknet53(1000)
+    net = darknet53(5)
     summary(net, (3, 416, 416))
 
     # optimizer = torch.optim.SGD(net.parameters(), lr=0.001)
 
-    for p in net.named_children():
-        if "fc" not in p:
-            p[1].requires_grad_(False)
-
-    optimizer = torch.optim.SGD(net.fc.parameters(), lr=0.001)
+    # for p in net.named_children():
+    #     if "fc" not in p:
+    #         p[1].requires_grad_(False)
+    #
+    # optimizer = torch.optim.SGD(net.fc.parameters(), lr=0.001)
 
     # parameter = torch.load(r"E:\model\darknet\model_best.pth.tar", map_location=torch.device('cpu'))['state_dict']
     # # print(parameter.keys())
     # net.load_state_dict(parameter)
 
-    for p in net.named_children():
-        if "fc" not in p:
-            p[1].requires_grad_(True)
-            # params = next(p.parameters())
-            # print(params.size())
-            # if params.size():
-            optimizer.add_param_group({"params": p[1].parameters()})
+    # for p in net.named_children():
+    #     if "fc" not in p:
+    #         p[1].requires_grad_(True)
+    #         # params = next(p.parameters())
+    #         # print(params.size())
+    #         # if params.size():
+    #         optimizer.add_param_group({"params": p[1].parameters()})
 
     # optimizer.SGD(optim_param, lr=1e-5)
     # for p in net.parameters():

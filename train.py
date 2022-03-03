@@ -223,9 +223,6 @@ def save_checkpoint(state, is_best, filename='model.pth', start_time=""):
 def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_func=None, optimizer=None,
           scheduler=None):
     print("Start Training ...")
-    timestamp = time.time()
-    datetime_struct = datetime.datetime.fromtimestamp(timestamp)
-    start_time = datetime_struct.strftime('%Y-%m-%d-%H-%M-%S-%f')
 
     best_acc1 = 0
 
@@ -294,23 +291,29 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
 def main():
     start_epoch = 1
     end_epoch = 100
+    freeze_eopch = 50
     batch_size = 32
-    num_workers = 6
+    num_workers = 8
     model_path = "./Darknet.pkl"
 
+    global start_time
+    timestamp = time.time()
+    datetime_struct = datetime.datetime.fromtimestamp(timestamp)
+    start_time = datetime_struct.strftime('%Y-%m-%d-%H-%M-%S-%f')
+
     transform_train = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
         # transforms.RandomResizedCrop(224),
-        # transforms.RandomHorizontalFlip(p=0.3),
-        # transforms.RandomVerticalFlip(p=0.3),
-        # transforms.RandomRotation(45),
+        transforms.RandomHorizontalFlip(p=0.3),
+        transforms.RandomVerticalFlip(p=0.3),
+        transforms.RandomRotation(45),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]),
     ])
 
     transform_test = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
         # transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -333,12 +336,6 @@ def main():
     # ------ load model ------------
     model = darknet53(5).to(device)
 
-    # -----------loss and optimize and scheduler---------------
-    Loss = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-
-    scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True)
-
     # ----------is  Load pretrained  --------
     print("Load pretrained ...")
     state = torch.load(model_path)
@@ -353,13 +350,37 @@ def main():
 
     # optimizer.load_state_dict(state['optimizer'])
 
+    # -----------loss and optimize and scheduler---------------
+    Loss = nn.CrossEntropyLoss()
+
     # ----------start training-------------
-    train(model, trainLoader, validLoader, start_epoch, end_epoch, Loss, optimizer, scheduler)
+    if freeze_eopch:
+        print("freeze train...")
+        # freeze
+        for p in model.named_children():
+            if "fc" not in p:
+                p[1].requires_grad = False
+        optimizer = torch.optim.SGD(model.fc.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0001)
+        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
+        train(model, trainLoader, validLoader, start_epoch, freeze_eopch, Loss, optimizer, scheduler)
+        # un freeze
+        print("un freeze train...")
+        for p in model.named_children():
+            if "fc" not in p:
+                p[1].requires_grad = True
+                # params = next(p.parameters())
+                # print(params.size())
+                # if params.size():
+                optimizer.add_param_group({"params": p[1].parameters()})
+
+        train(model, trainLoader, validLoader, freeze_eopch + 1, end_epoch, Loss, optimizer, scheduler)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0001)
+        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
+        train(model, trainLoader, validLoader, start_epoch, end_epoch, Loss, optimizer, scheduler)
 
     results = evaluate(model, testLoader, loss_func=Loss)
 
 
 if __name__ == '__main__':
     main()
-
-
