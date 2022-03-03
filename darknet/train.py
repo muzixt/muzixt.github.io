@@ -302,7 +302,7 @@ def main():
     start_time = datetime_struct.strftime('%Y-%m-%d-%H-%M-%S-%f')
 
     transform_train = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((224, 224)),
         # transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(p=0.3),
         transforms.RandomVerticalFlip(p=0.3),
@@ -313,7 +313,7 @@ def main():
     ])
 
     transform_test = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((224, 224)),
         # transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -360,7 +360,7 @@ def main():
         for p in model.named_children():
             if "fc" not in p:
                 p[1].requires_grad = False
-        optimizer = torch.optim.SGD(model.fc.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0001)
+        optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.01, weight_decay=0.0001)
         scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
         train(model, trainLoader, validLoader, start_epoch, freeze_eopch, Loss, optimizer, scheduler)
         # un freeze
@@ -375,7 +375,7 @@ def main():
 
         train(model, trainLoader, validLoader, freeze_eopch + 1, end_epoch, Loss, optimizer, scheduler)
     else:
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0001)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0001)
         scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
         train(model, trainLoader, validLoader, start_epoch, end_epoch, Loss, optimizer, scheduler)
 
