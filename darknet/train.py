@@ -272,7 +272,8 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
             epoch_log.clear()
         # -------update lr---------
         metric = log_dic['val_acc_top1'] if scheduler.mode == "max" else log_dic['val_loss']
-        scheduler.step(metric)
+        if scheduler:
+            scheduler.step(metric)
         # -------------save log -----------------
         save_log_to_txt(log_dic, start_time=start_time)
         # ----------save checkpoint----------------------------
@@ -290,7 +291,7 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
 
 def main():
     start_epoch = 1
-    end_epoch = 100
+    end_epoch = 150
     freeze_eopch = 50
     batch_size = 32
     num_workers = 8
@@ -360,9 +361,9 @@ def main():
         for p in model.named_children():
             if "fc" not in p:
                 p[1].requires_grad = False
-        optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.01, weight_decay=0.0001)
-        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
-        train(model, trainLoader, validLoader, start_epoch, freeze_eopch, Loss, optimizer, scheduler)
+        optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.001, weight_decay=0.0001)
+        # scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
+        train(model, trainLoader, validLoader, start_epoch, freeze_eopch, Loss, optimizer)
         # un freeze
         print("un freeze train...")
         for p in model.named_children():
@@ -373,9 +374,10 @@ def main():
                 # if params.size():
                 optimizer.add_param_group({"params": p[1].parameters()})
 
+        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
         train(model, trainLoader, validLoader, freeze_eopch + 1, end_epoch, Loss, optimizer, scheduler)
     else:
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0001)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
         scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
         train(model, trainLoader, validLoader, start_epoch, end_epoch, Loss, optimizer, scheduler)
 
