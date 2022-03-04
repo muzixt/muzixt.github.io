@@ -228,8 +228,8 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
 
     train_iters = len(train_loader)
     val_iters = len(val_loader)
-    train_progress = ProgressBar("Train", total_epoch=end_epoch - start_epoch + 1, iters=train_iters, width=30)
-    val_progress = ProgressBar("Val", total_epoch=end_epoch - start_epoch + 1, iters=val_iters, width=10)
+    train_progress = ProgressBar("Train", total_epoch=end_epoch , iters=train_iters, width=30)
+    val_progress = ProgressBar("Val", total_epoch=end_epoch, iters=val_iters, width=10)
 
     epoch_log = {}
     for epoch in range(start_epoch, end_epoch + 1):
