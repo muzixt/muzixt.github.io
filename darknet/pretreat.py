@@ -47,31 +47,21 @@ def cutmix(img_a, img_b, n=2):
     return img_a
 
 
-# res=cutmix(imga,imgb)
-# draw = Image.fromarray(cv.cvtColor(res,cv.COLOR_BGR2RGB))
-# display(draw)
-
 def mosaic(imgs: list, size=416):
     imgs = [process_image(img, size) for img in imgs]
     image = cv.vconcat([cv.hconcat([imgs[0], imgs[1]]), cv.hconcat([imgs[2], imgs[3]])])
     return image
 
 
-def generate_sample_img(num):
-    global path
-    imgs = os.listdir(path)
-    imgs_path = [os.path.join(path, img) for img in imgs]
-    choice_imgs = np.random.choice(imgs_path, size=num)
-    while set(choice_imgs) == 1:
-        choice_imgs = np.random.choice(imgs_path, size=num)
-    return choice_imgs
-
-
-ran_str = lambda: ''.join(random.sample(string.ascii_letters + string.digits, 18))
+def SamplePairing(imga, imgb):
+    imga, imgb = process_image(imga), process_image(imgb)
+    img = (imga + imgb) // 2
+    return img
 
 
 def generate_img_cutmix(val):
     imga, imgb = cv.imread(val[0]), cv.imread(val[1])
+    # default n=2
     img = cutmix(imga, imgb, n=2)
     save_path = os.path.dirname(val[0])
     save_path = os.path.join(save_path, ran_str() + "_cutmix.jpg")
@@ -90,6 +80,28 @@ def generate_img_mosaic(val):
     cv.imwrite(save_path, img)
 
 
+def generate_img_SamplePairing(val):
+    imga, imgb = cv.imread(val[0]), cv.imread(val[1])
+    img = SamplePairing(imga, imgb)
+    save_path = os.path.dirname(val[0])
+    save_path = os.path.join(save_path, ran_str() + "_SamplePairing.jpg")
+    print(save_path)
+    cv.imwrite(save_path, img)
+
+
+def generate_sample_img(num):
+    global path
+    imgs = os.listdir(path)
+    imgs_path = [os.path.join(path, img) for img in imgs]
+    choice_imgs = np.random.choice(imgs_path, size=num)
+    while set(choice_imgs) == 1:
+        choice_imgs = np.random.choice(imgs_path, size=num)
+    return choice_imgs
+
+
+ran_str = lambda: ''.join(random.sample(string.ascii_letters + string.digits, 18))
+
+
 def generate_iterable(num, n=1000):
     tmp = []
     for _ in range(n):
@@ -100,16 +112,21 @@ def generate_iterable(num, n=1000):
 def main():
     global path
     path = r'./data/train/level4'
+    # -----------------------
     cutmix_lst = generate_iterable(2, 1000)
     mosaic_lst = generate_iterable(4, 1000)
-    # print(cutmix_lst)
-    # print(mosaic_lst)
-    # sys.exit()
+    SamplePairing_lst = generate_iterable(2, 1000)
+    # ---------------------
     with Pool(10) as pool:
         # cutmix
-        pool.map(generate_img_cutmix, cutmix_lst)
+        if cutmix_lst:
+            pool.map(generate_img_cutmix, cutmix_lst)
         # mosaic
-        pool.map(generate_img_mosaic, mosaic_lst)
+        if mosaic_lst:
+            pool.map(generate_img_mosaic, mosaic_lst)
+        # SamplePairing
+        if SamplePairing_lst:
+            pool.map(generate_img_SamplePairing, SamplePairing_lst)
 
 
 if __name__ == '__main__':
