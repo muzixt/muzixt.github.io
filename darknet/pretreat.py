@@ -4,7 +4,7 @@ import os, sys
 from PIL import Image
 import string
 import random
-from multiprocessing.pool import Pool
+from multiprocessing.pool import ThreadPool as Pool
 
 
 def process_image(img, min_side=416):
