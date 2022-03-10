@@ -104,8 +104,11 @@ ran_str = lambda: ''.join(random.sample(string.ascii_letters + string.digits, 18
 
 def generate_iterable(num, n=1000):
     tmp = []
-    for _ in range(n):
+    print("prepare...")
+    for i in range(n):
         tmp.append(generate_sample_img(num))
+        print(f"\r{i + 1}/{n}", end="")
+    print()
     return tmp
 
 
