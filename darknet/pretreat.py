@@ -116,6 +116,7 @@ def main():
     global path
     path = r'./data/train/level4'
     # -----------------------
+    cutmix_lst, mosaic_lst, SamplePairing_lst = [], [], []
     cutmix_lst = generate_iterable(2, 1000)
     mosaic_lst = generate_iterable(4, 1000)
     SamplePairing_lst = generate_iterable(2, 1000)
