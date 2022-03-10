@@ -187,7 +187,8 @@ def evaluate(model, dl_val, loss_func):
 def predict(model, dl):
     model.eval()
     result = torch.cat([model(t[0].to(device)) for t in dl])
-    return result.data
+    target = torch.cat([t[1] for t in dl])
+    return result.data, target.data
 
 
 # print(accuracy(torch.Tensor(torch.range(1, 25).view(5, 5)), torch.Tensor(torch.range(1, 5).view(5))))
