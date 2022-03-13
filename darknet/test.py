@@ -32,9 +32,9 @@ testLoader = DataLoader(ds_test, batch_size=32, shuffle=False, num_workers=8)
 class_to_idx = ds_test.class_to_idx
 
 class_to_nums = {k: ds_test.targets.count(v) for k, v in class_to_idx.items()}
-
-print(class_to_idx)
-print(class_to_nums)
+#
+# print(class_to_idx)
+# print(class_to_nums)
 
 model = resnet34(num_classes=5).to(device)
 
@@ -49,8 +49,8 @@ pre = pre.squeeze(1).cpu().detach().numpy().astype(int)
 q = 0
 counts = 0
 for (k, v), (k1, v1) in zip(class_to_nums.items(), class_to_idx.items()):
+    count = np.sum(pre[q:q + v] == v1)
     q += v
-    count = np.sum(pre[0:q] == v1)
     counts += count
     print(f"{k} acc :{count / v:.3f}")
 else:
