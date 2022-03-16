@@ -5,18 +5,20 @@ import shutil
 import sys
 import time
 import datetime
+from collections import Counter
 from typing import List
-
+import cv2 as cv
 import numpy as np
 import pandas as pd
 import torch
+from PIL import Image
 from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
 
 from model import darknet53
-
+from net2 import *
 from progress_bar import ProgressBar
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -94,6 +96,84 @@ def accuracy(output: torch.Tensor, target: torch.Tensor, topk=(1,)) -> List[torc
         return list_topk_accs  # list of topk accuracies for entire batch [topk1, topk2, ... etc]
 
 
+class Regularization(torch.nn.Module):
+    def __init__(self, model, weight_decay, p=2):
+        '''
+        :param model 模型
+        :param weight_decay:正则化参数
+        :param p: 范数计算中的幂指数值，默认求2范数,
+                  当p=0为L2正则化,p=1为L1正则化
+        '''
+        super(Regularization, self).__init__()
+        if weight_decay <= 0:
+            print("param weight_decay can not <=0")
+            exit(0)
+        self.model = model
+        self.weight_decay = weight_decay
+        self.p = p
+        self.weight_list = self.get_weight(model)
+        # self.weight_info(self.weight_list)
+
+    def to(self, device):
+        '''
+        指定运行模式
+        :param device: cude or cpu
+        :return:
+        '''
+        self.device = device
+        super().to(device)
+        return self
+
+    def forward(self, model):
+        self.weight_list = self.get_weight(model)  # 获得最新的权重
+        reg_loss = self.regularization_loss(self.weight_list, self.weight_decay, p=self.p)
+        return reg_loss
+
+    def get_weight(self, model):
+        '''
+        获得模型的权重列表
+        :param model:
+        :return:
+        '''
+        weight_list = []
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                weight = (name, param)
+                weight_list.append(weight)
+        return weight_list
+
+    def regularization_loss(self, weight_list, weight_decay, p=2):
+        '''
+        计算张量范数
+        :param weight_list:
+        :param p: 范数计算中的幂指数值，默认求2范数
+        :param weight_decay:
+        :return:
+        '''
+        # weight_decay=Variable(torch.FloatTensor([weight_decay]).to(self.device),requires_grad=True)
+        # reg_loss=Variable(torch.FloatTensor([0.]).to(self.device),requires_grad=True)
+        # weight_decay=torch.FloatTensor([weight_decay]).to(self.device)
+        # reg_loss=torch.FloatTensor([0.]).to(self.device)
+        reg_loss = 0
+        for name, w in weight_list:
+            l2_reg = torch.norm(w, p=p)
+            reg_loss = reg_loss + l2_reg
+
+        reg_loss = weight_decay * reg_loss
+        return reg_loss
+
+    def weight_info(self, weight_list):
+        '''
+        打印权重列表信息
+        :param weight_list:
+        :return:
+        '''
+        print("---------------regularization weight---------------")
+        for name, w in weight_list:
+            print(name)
+        print("---------------------------------------------------")
+
+
 def train_step(model, features, labels, loss_func, optimizer):
     model.train()
     optimizer.zero_grad()
@@ -112,6 +192,9 @@ def train_step(model, features, labels, loss_func, optimizer):
     # print(labels.dtype)
     # print(labels.squeeze().dtype)
     loss = loss_func(predictions, labels.squeeze().long())
+    global weight_decay, reg_loss
+    if weight_decay > 0:
+        loss = loss + reg_loss(model)
 
     # loss=loss_func(predictions,labels)
     # evaluate metrics
@@ -229,7 +312,7 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
 
     train_iters = len(train_loader)
     val_iters = len(val_loader)
-    train_progress = ProgressBar("Train", total_epoch=end_epoch , iters=train_iters, width=30)
+    train_progress = ProgressBar("Train", total_epoch=end_epoch, iters=train_iters, width=30)
     val_progress = ProgressBar("Val", total_epoch=end_epoch, iters=val_iters, width=10)
 
     epoch_log = {}
@@ -290,13 +373,39 @@ def train(model, train_loader, val_loader, start_epoch=1, end_epoch=200, loss_fu
         log_dic.clear()
 
 
+class hisEqulColorTransform:
+
+    def __init__(self, num=2):
+        self.num = num
+
+    def __call__(self, x):
+        for _ in range(self.num):
+            x = self.hisEqulColor(x)
+        return x
+
+    # 自适应直方图均衡化
+    def hisEqulColor(self, img):
+        # 转cv格式
+        ycrcb = cv.cvtColor(np.asarray(img), cv.COLOR_RGB2YCR_CB)
+        channels = cv.split(ycrcb)
+        clahe = cv.createCLAHE(clipLimit=1.0, tileGridSize=(7, 7))
+        clahe.apply(channels[0], channels[0])
+        cv.merge(channels, ycrcb)
+        # 转PIL格式
+        img = Image.fromarray(cv.cvtColor(ycrcb, cv.COLOR_YCR_CB2RGB))
+        return img
+
+
 def main():
     start_epoch = 1
-    end_epoch = 150
-    freeze_eopch = 50
-    batch_size = 32
+    end_epoch = 200
+    freeze_eopch = 0
+    batch_size = 128
     num_workers = 8
-    model_path = "./Darknet.pkl"
+    model_path = "./model/Best1.pth"
+
+    global weight_decay, reg_loss
+    weight_decay = 0.01  # 正则化参数
 
     global start_time
     timestamp = time.time()
@@ -304,11 +413,18 @@ def main():
     start_time = datetime_struct.strftime('%Y-%m-%d-%H-%M-%S-%f')
 
     transform_train = transforms.Compose([
+        # hisEqulColorTransform(),
+        # transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
         transforms.Resize((224, 224)),
-        # transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(p=0.3),
-        transforms.RandomVerticalFlip(p=0.3),
-        transforms.RandomRotation(45),
+        # transforms.RandomVerticalFlip(p=0.7),
+        # transforms.RandomRotation(180),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
+    ])
+
+    transform_val = transforms.Compose([
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]),
@@ -316,27 +432,29 @@ def main():
 
     transform_test = transforms.Compose([
         transforms.Resize((224, 224)),
-        # transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]),
     ])
+
     #
-    dataset = datasets.ImageFolder("./data/train/",
-                                   transform=transform_train, target_transform=lambda t: torch.tensor([t]).float())
+    ds_train = datasets.ImageFolder("./data/train/",
+                                    transform=transform_train, target_transform=lambda t: torch.tensor([t]).float())
 
-    ds_test = datasets.ImageFolder("./data/val/",
+    ds_valid = datasets.ImageFolder("./data/val/",
+                                    transform=transform_val, target_transform=lambda t: torch.tensor([t]).float())
+
+    ds_test = datasets.ImageFolder("./data/test/",
                                    transform=transform_test, target_transform=lambda t: torch.tensor([t]).float())
-    train_size = int(0.8 * len(dataset))
-    test_size = len(dataset) - train_size
-    ds_train, ds_valid = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-    trainLoader = DataLoader(ds_train, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    validLoader = DataLoader(ds_valid, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    trainLoader = DataLoader(ds_train, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True,
+                             prefetch_factor=4, persistent_workers=True)
+    validLoader = DataLoader(ds_valid, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True,
+                             prefetch_factor=4, persistent_workers=True)
     testLoader = DataLoader(ds_test, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
     # ------ load model ------------
-    model = darknet53(5).to(device)
+    model = resnet34(num_classes=5).to(device)
 
     # ----------is  Load pretrained  --------
     print("Load pretrained ...")
@@ -344,7 +462,7 @@ def main():
 
     # model_dict = model.state_dict()
     # pretrained_dict = {k: v for k, v in state.items() if (k in model_dict and 'fc' not in k)}
-    # 更新权重
+    # # 更新权重
     # model_dict.update(pretrained_dict)
     # model.load_state_dict(model_dict)
 
@@ -352,37 +470,45 @@ def main():
 
     # optimizer.load_state_dict(state['optimizer'])
 
-    # -----------loss and optimize and scheduler---------------
+    # -----------loss  and scheduler and Regularization---------------
     Loss = nn.CrossEntropyLoss()
+
+    if weight_decay > 0:
+        reg_loss = Regularization(model, weight_decay, p=2).to(device)
+    else:
+        print("no regularization")
 
     # ----------start training-------------
     if freeze_eopch:
         print("freeze train...")
         # freeze
-        for p in model.named_children():
-            if "fc" not in p:
+        for p in model.named_parameters():
+            # print(p[1].requires_grad)
+            if "fc" not in p[0]:
                 p[1].requires_grad = False
-        optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.001, weight_decay=0.0001)
+                # print(p[0], p[1].requires_grad)
+        optimizer = torch.optim.Adam(
+            [{'params': [param for name, param in model.named_parameters() if 'fc' not in name]}], lr=0.001)
+
         # scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
         train(model, trainLoader, validLoader, start_epoch, freeze_eopch, Loss, optimizer)
         # un freeze
         print("un freeze train...")
-        for p in model.named_children():
-            if "fc" not in p:
+        for p in model.named_parameters():
+            # print(p[1].requires_grad)
+            if "fc" not in p[0]:
                 p[1].requires_grad = True
-                # params = next(p.parameters())
-                # print(params.size())
-                # if params.size():
-                optimizer.add_param_group({"params": p[1].parameters()})
 
-        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
+        optimizer.add_param_group({'params': [param for name, param in model.named_parameters() if 'fc' in name]})
+
+        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=5)
         train(model, trainLoader, validLoader, freeze_eopch + 1, end_epoch, Loss, optimizer, scheduler)
     else:
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
-        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=7)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        scheduler = ReduceLROnPlateau(optimizer, 'max', verbose=True, patience=5)  # min
         train(model, trainLoader, validLoader, start_epoch, end_epoch, Loss, optimizer, scheduler)
 
-    results = evaluate(model, testLoader, loss_func=Loss)
+    # results = evaluate(model, testLoader, loss_func=Loss)
 
 
 if __name__ == '__main__':
