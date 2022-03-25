@@ -4,7 +4,9 @@ import os, sys
 from PIL import Image
 import string
 import random
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing.pool import Pool as Pool
+from albumentations import *
+import albumentations as A
 
 
 def process_image(img, min_side=416):
@@ -150,7 +152,7 @@ def generate_sample_img(num):
     imgs = os.listdir(path)
     imgs_path = [os.path.join(path, img) for img in imgs]
     choice_imgs = np.random.choice(imgs_path, size=num)
-    while set(choice_imgs) == 1:
+    while set(choice_imgs) == 1 and num != 1:
         choice_imgs = np.random.choice(imgs_path, size=num)
     return choice_imgs
 
@@ -168,6 +170,29 @@ def generate_iterable(num, n=1000):
     return tmp
 
 
+def albumen_lst_iter(size=1000):
+    global path
+    imgs = os.listdir(path)
+    imgs_path = [os.path.join(path, img) for img in imgs]
+    choice_imgs = np.random.choice(imgs_path, size=size)
+    imgs_dic = [(k, v) for k in range(len(trans)) for v in choice_imgs]
+    return imgs_dic
+
+
+def generate_albumen(val):
+    image = cv.imread(val[1])
+    image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+
+    transform = A.Compose(trans[val[0]])
+    image = transform(image=image)["image"]
+    image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
+
+    save_path = os.path.dirname(val[1])
+    save_path = os.path.join(save_path, ran_str() + f"_{val[0]}_albumen.jpg")
+    print(save_path)
+    cv.imwrite(save_path, image)
+
+
 # -----------------------------------------------------------------------
 
 
@@ -176,7 +201,8 @@ def hisEqul(img):
     # 将RGB图像转换到YCrCb空间中
     ycrcb = cv.cvtColor(img, cv.COLOR_BGR2YCR_CB)
     channels = cv.split(ycrcb)
-    clahe = cv.createCLAHE(clipLimit=1.0, tileGridSize=(7, 7))
+    k = random.randint(7, 14)
+    clahe = cv.createCLAHE(clipLimit=1.0, tileGridSize=(k, k))
     clahe.apply(channels[0], channels[0])
     cv.merge(channels, ycrcb)
     cv.cvtColor(ycrcb, cv.COLOR_YCR_CB2BGR, img)
@@ -200,13 +226,17 @@ def Flip_Rotation_img(img):
     center = (w // 2, h // 2)
     # h_img = cv.flip(img, 1)  # 水平翻转
     v_img = cv.flip(img, 0)  # 垂直翻转
+
     M = cv.getRotationMatrix2D(center, -90, 1.0)  # 90度
     left_img = cv.warpAffine(img, M, (w, h))
     M = cv.getRotationMatrix2D(center, -180, 1.0)  # 180度
     up_img = cv.warpAffine(img, M, (w, h))
     M = cv.getRotationMatrix2D(center, -270, 1.0)  # 270度
     right_img = cv.warpAffine(img, M, (w, h))
+
     return {"_rotate90": left_img, "_rotate180": up_img, "_rotate270": right_img, "_flip_v": v_img}
+
+    # return {"_flip_v": v_img}
 
 
 # 椒盐噪声
@@ -243,10 +273,8 @@ def generate_img_Flip_Rotation(val):
 
 
 def generate_img_hisEqul(val):
-    global hisEqulnum
     img = cv.imread(val)
-    for _ in range(hisEqulnum):
-        img = hisEqul(img)
+    img = hisEqul(img)
     f, suffix = os.path.splitext(val)
     save_path = f + "_hisEqul" + suffix
     print(save_path)
@@ -273,20 +301,20 @@ def generate_img_lst(name: str = ""):
 
 def main():
     global path
-    path = r'./data/train/level4'
+    path = r'./data/train2/level1'
     # -----------------------
     cutmix_lst, mosaic_lst, SamplePairing_lst, cuthalf_lst, = [], [], [], []
     # cutmix_lst = generate_iterable(2, 1000) # x
-    mosaic_lst = generate_iterable(4, 20000)  # *
-    # SamplePairing_lst = generate_iterable(2, 5000)
-    cuthalf_lst = generate_iterable(2, 10000)  # default *2
+    # mosaic_lst = generate_iterable(4, 20000)  # *
+    # SamplePairing_lst = generate_iterable(2, 15000)
+    # cuthalf_lst = generate_iterable(2, 10000)  # default *2
 
     # ---------------------
 
     hisEqul_lst, color_reversal_lst, PepperandSalt_lst, Flip_Rotation_lst = [], [], [], []
-    global hisEqulnum
-    hisEqulnum = 2
-    # hisEqul_lst = generate_img_lst("hisEqul")
+    # ///////
+    hisEqul_lst = generate_sample_img(1000)
+    # ////////////
 
     # Flip_Rotation_lst = generate_img_lst("Flip_Rotation")
 
@@ -294,10 +322,47 @@ def main():
 
     # PepperandSalt_lst = generate_img_lst("PepperandSalt")
 
-
-
     # -----------------
-    with Pool(10) as pool:
+    global trans
+    trans = [
+        [
+            SafeRotate(always_apply=True, limit=180)
+        ],
+        [
+            ColorJitter(always_apply=True)
+        ],
+        [
+            RandomBrightnessContrast(always_apply=True, brightness_limit=0.7, contrast_limit=0.7,
+                                     brightness_by_max=False)
+        ],
+        [
+            ElasticTransform(sigma=70, alpha_affine=100, always_apply=True)
+        ],
+        [
+            GridDistortion(num_steps=7, distort_limit=0.3, always_apply=True)
+        ],
+
+        [
+            RandomGamma(gamma_limit=(100, 300), always_apply=True)
+        ],
+        [
+            RandomToneCurve(scale=0.7, always_apply=True)
+        ],
+        [
+            RandomResizedCrop(320, 320, scale=(0.2, 1.0), ratio=(0.75, 1.5), always_apply=True)
+        ],
+
+        [
+            RandomGridShuffle(grid=(3, 3), always_apply=True)
+        ],
+        [
+            PiecewiseAffine(scale=(0.03, 0.07), nb_rows=4, nb_cols=4, always_apply=True)
+        ]
+    ]
+    albumen_lst = []
+    albumen_lst = albumen_lst_iter(3500)
+
+    with Pool(8) as pool:
         # cutmix
         if cutmix_lst:
             pool.map(generate_img_cutmix, cutmix_lst)
@@ -322,6 +387,10 @@ def main():
         # * 4
         if Flip_Rotation_lst:
             pool.map(generate_img_Flip_Rotation, Flip_Rotation_lst)
+
+        #  --------------
+        if albumen_lst:
+            pool.map(generate_albumen, albumen_lst)
 
 
 if __name__ == '__main__':
