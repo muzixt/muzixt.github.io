@@ -5,7 +5,7 @@ Echarts https://echarts.apache.org/
 pyecharts https://pyecharts.org/  
 
 ---
-## python web框架
+## Python web框架
 Sanic https://sanic.readthedocs.io/  
 
 
