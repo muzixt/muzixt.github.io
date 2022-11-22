@@ -12,5 +12,5 @@ https://realpython.com/async-io-python/
 
 ### web 异步框架
 Sanic https://sanic.readthedocs.io/  
-
+Sanic扩展 https://github.com/mekicha/awesome-sanic  
 
