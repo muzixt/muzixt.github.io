@@ -17,3 +17,6 @@ https://www.runoob.com/docker/docker-tutorial.html
 ### 可视化框架
 Echarts https://echarts.apache.org/  
 pyecharts https://pyecharts.org/  
+
+### linux 学习笔记
+https://github.com/muzixt/muzixt.github.io/blob/main/python/files/Linux%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.pdf  
