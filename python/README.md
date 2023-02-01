@@ -14,6 +14,9 @@ Sanic redis扩展 [sanic-redis-extension](https://github.com/Relrin/sanic-redis-
 异步ORM 框架 [SQLAlchemy](https://www.sqlalchemy.org/)  
 mysql异步框架 [aiomysql](https://github.com/aio-libs/aiomysql)  
 
+### 用户验证
+[PyJWT](https://blog.csdn.net/lly1122334/article/details/126760077)  
+
 ### Docker 教程
 https://www.runoob.com/docker/docker-tutorial.html  
 
