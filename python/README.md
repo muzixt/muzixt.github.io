@@ -3,14 +3,16 @@
 ### Python教程
 https://www.runoob.com/python3/python3-tutorial.html  
 
-### 异步框架(AsyncIO) 
+### python异步原生框架(AsyncIO) 
 https://superfastpython.com/python-asyncio/  
 https://realpython.com/async-io-python/  
 
-### Web 异步框架
+### Web 相关 异步框架
 Sanic https://sanic.readthedocs.io/  
 Sanic扩展 https://github.com/mekicha/awesome-sanic  
-Sanic redis扩展[sanic-redis-extension](https://github.com/Relrin/sanic-redis-extension) 
+Sanic redis扩展 [sanic-redis-extension](https://github.com/Relrin/sanic-redis-extension) 
+异步ORM 框架 SQLAlchemy(https://www.sqlalchemy.org/)
+mysql异步框架 [aiomysql](https://github.com/aio-libs/aiomysql) 
 
 ### Docker 教程
 https://www.runoob.com/docker/docker-tutorial.html  
