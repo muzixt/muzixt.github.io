@@ -10,9 +10,9 @@ https://realpython.com/async-io-python/
 ### Web 相关 异步框架
 Sanic https://sanic.readthedocs.io/  
 Sanic扩展 https://github.com/mekicha/awesome-sanic  
-Sanic redis扩展 [sanic-redis-extension](https://github.com/Relrin/sanic-redis-extension) 
-异步ORM 框架 SQLAlchemy(https://www.sqlalchemy.org/)
-mysql异步框架 [aiomysql](https://github.com/aio-libs/aiomysql) 
+Sanic redis扩展 [sanic-redis-extension](https://github.com/Relrin/sanic-redis-extension)  
+异步ORM 框架 SQLAlchemy(https://www.sqlalchemy.org/)  
+mysql异步框架 [aiomysql](https://github.com/aio-libs/aiomysql)  
 
 ### Docker 教程
 https://www.runoob.com/docker/docker-tutorial.html  
