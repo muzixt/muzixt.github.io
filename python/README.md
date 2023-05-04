@@ -11,8 +11,7 @@ https://realpython.com/async-io-python/
 [Sanic](https://sanic.readthedocs.io/)  
 [Sanic扩展](https://github.com/mekicha/awesome-sanic)  
 Sanic redis扩展 [sanic-redis-extension](https://github.com/Relrin/sanic-redis-extension)  
-异步ORM 框架 [SQLAlchemy](https://www.sqlalchemy.org/)  
-异步ORM 框架 [Tortoise ORM¶](https://tortoise.github.io/index.html)  
+异步ORM 框架 [SQLAlchemy](https://www.sqlalchemy.org/) [Tortoise ORM](https://tortoise.github.io/index.html)  
 mysql异步框架 [aiomysql](https://github.com/aio-libs/aiomysql)  
 
 ### 用户验证
