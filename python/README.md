@@ -2,6 +2,10 @@
 ---
 ### Python教程
 https://www.runoob.com/python3/python3-tutorial.html  
+[python中文指南](https://python.iswbm.com/)  
+[Python黑魔法手册](https://magic.iswbm.com/)  
+[PyCharm 中文指南](https://pycharm.iswbm.com/)  
+
 
 ### python异步原生框架(AsyncIO) 
 https://superfastpython.com/python-asyncio/  
