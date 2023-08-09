@@ -24,7 +24,7 @@ mysql异步框架 [aiomysql](https://github.com/aio-libs/aiomysql)
 ### Docker 教程
 [docker](https://www.runoob.com/docker/docker-tutorial.html)  
 [用于Python的Docker SDK](https://www.osgeo.cn/docker-py/)  
-[docker-compose]([https://docs.docker.com/reference/](https://docs.docker.com/compose/compose-file/))  
+[docker-compose](https://docs.docker.com/compose/compose-file/)  
 [docker-hub](https://hub.docker.com/)  
 [NVIDIA Container Toolkit/nvidia-docker2](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/overview.html)
 
