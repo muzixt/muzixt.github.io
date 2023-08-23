@@ -11,6 +11,12 @@ https://www.runoob.com/python3/python3-tutorial.html
 https://superfastpython.com/python-asyncio/  
 https://realpython.com/async-io-python/  
 
+### Python 多进程、多线程，协程  
+[multiprocessing --- 基于进程的并行](https://docs.python.org/zh-cn/3/library/multiprocessing.html#)  
+[Python 多进程&多线程&线程池&进程池&协程](https://blog.csdn.net/qq_39208536/article/details/129230628)  
+[Python模块multiprocessing & 实现多进程并发](https://blog.csdn.net/m0_61066945/article/details/131233056)  
+
+
 ### Web 相关 异步框架
 [Sanic](https://sanic.readthedocs.io/)  
 [Sanic扩展](https://github.com/mekicha/awesome-sanic)  
